@@ -1,0 +1,71 @@
+version: '3'
+
+services:
+  webapp:
+    image: ${WEBAPP_IMAGE}
+    container_name: babylogger_webapp
+    expose:
+      - 5000
+    depends_on:
+      - db
+      - fastapi
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.services.webapp.loadbalancer.server.port=5000'
+      - 'traefik.http.routers.webapp.rule=Host(`${HOST_ROOT}`)'
+
+  fastapi:
+    container_name: babylogger_fastapi
+    image: ${API_IMAGE}
+    depends_on:
+      - db
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.services.fastapi.loadbalancer.server.port=8000'
+      - 'traefik.http.routers.fastapi.rule=Host(`fastapi.localhost`)'
+
+  db:
+    container_name: babylogger_postgres
+    restart: on-failure
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASS}
+      POSTGRES_DB: ${POSTGRES_DATABASE}
+    volumes:
+      - ./backend/db_data:/var/lib/postgresql/data
+
+  traefik:
+    image: traefik:latest
+    container_name: babylogger_traefik
+    command:
+      - --api.dashboard=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - "--certificatesresolvers.letsencryptresolver.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencryptresolver.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencryptresolver.acme.email=${EMAIL}"
+      - "--certificatesresolvers.letsencryptresolver.acme.storage=/letsencrypt/acme."
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - traefik-certificates:/letsencrypt
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.api.loadbalancer.server.port=8080
+      - traefik.http.routers.api.rule=Host(`traefik.${HOST_ROOT}`)
+      - traefik.http.routers.api.entrypoints=web
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls.certresolver=letsencryptresolver"
+      - "traefik.http.routers.traefik.middlewares=traefik-auth"
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_USER}:${TRAEFIK_PASS}"

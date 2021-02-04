@@ -1,0 +1,69 @@
+version: '3'
+
+services:
+  webapp:
+    container_name: babylogger_webapp
+    build:
+      context: ./vue-app
+      dockerfile: Dockerfile
+    expose:
+      - 5000
+    volumes:
+      - './vue-app/:/vue-app/'
+      - /vue-app/node_modules/
+    depends_on:
+      - db
+      - fastapi
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.services.webapp.loadbalancer.server.port=5000'
+      - 'traefik.http.routers.webapp.rule=Host(`localhost`)'
+
+  fastapi:
+    container_name: babylogger_fastapi
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    volumes:
+      - './backend/:/backend/'
+      - /backend/BabyLoggerAPIEnv/
+    depends_on:
+      - db
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.services.fastapi.loadbalancer.server.port=8000'
+      - 'traefik.http.routers.fastapi.rule=Host(`fastapi.localhost`)'
+
+  db:
+    container_name: babylogger_postgres
+    restart: on-failure
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: supersecurepass
+      POSTGRES_DB: babylogger
+    volumes:
+      - ./backend/db_data:/var/lib/postgresql/data
+
+  traefik:
+    image: traefik:latest
+    container_name: babylogger_traefik
+    command:
+      - --api.insecure=true
+      - --api.dashboard=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.api.loadbalancer.server.port=8080
+      - traefik.http.routers.api.rule=Host(`traefik.localhost`)
+      - traefik.http.routers.api.entrypoints=web

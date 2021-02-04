@@ -8,5 +8,9 @@ class Entry(Base):
 
     id = Column(Integer, primary_key=True)
     created_at = Column(DateTime, default=datetime.utcnow(), index=True)
-    notes = Column(String)
-    dirty = Column(Boolean, default=False)
+    entry_type = Column(String)
+    duration = Column(Integer, nullable=True)
+    wee = Column(Boolean, nullable=True)
+    poo = Column(Boolean, nullable=True)
+    full = Column(Boolean, nullable=True)
+    notes = Column(String, nullable=True)

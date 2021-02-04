@@ -1,8 +1,8 @@
 {
-    "python.linting.flake8Enabled": false,
-    "python.linting.pylintEnabled": true,
+    "python.linting.flake8Enabled": true,
+    "python.linting.pylintEnabled": false,
     "python.linting.enabled": true,
-    "python.pythonPath": "/Users/huw/Projects/BabyLogger/backend/BabyLoggerAPIEnv/bin/python3.7",
-    "editor.formatOnSave": true,
+    "python.pythonPath": "backend/BabyLoggerAPIEnv/bin/python3.7",
+    "editor.formatOnSave": false,
     "git.ignoreLimitWarning": true
 }
