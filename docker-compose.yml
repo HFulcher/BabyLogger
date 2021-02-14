@@ -14,13 +14,13 @@ services:
     depends_on:
       - db
       - fastapi
-    labels:
-      - 'traefik.enable=true'
-      - 'traefik.http.services.webapp.loadbalancer.server.port=5000'
-      - 'traefik.http.routers.webapp.rule=Host(`localhost`)'
 
   fastapi:
     container_name: babylogger_fastapi
+    expose:
+      - 8000
+    environment:
+      POSTGRES_PASS: supersecurepass
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -29,10 +29,6 @@ services:
       - /backend/BabyLoggerAPIEnv/
     depends_on:
       - db
-    labels:
-      - 'traefik.enable=true'
-      - 'traefik.http.services.fastapi.loadbalancer.server.port=8000'
-      - 'traefik.http.routers.fastapi.rule=Host(`fastapi.localhost`)'
 
   db:
     container_name: babylogger_postgres
@@ -44,26 +40,11 @@ services:
     volumes:
       - ./backend/db_data:/var/lib/postgresql/data
 
-  traefik:
-    image: traefik:latest
-    container_name: babylogger_traefik
-    command:
-      - --api.insecure=true
-      - --api.dashboard=true
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --entrypoints.web.address=:80
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
     ports:
       - "80:80"
-      - "8080:8080"
+      - "443:443"
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-    deploy:
-      placement:
-        constraints:
-          - node.role == manager
-    labels:
-      - traefik.enable=true
-      - traefik.http.services.api.loadbalancer.server.port=8080
-      - traefik.http.routers.api.rule=Host(`traefik.localhost`)
-      - traefik.http.routers.api.entrypoints=web
+      - ./caddy/Caddyfile.dev:/etc/caddy/Caddyfile

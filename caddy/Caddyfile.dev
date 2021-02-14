@@ -1,0 +1,6 @@
+localhost {
+    reverse_proxy webapp:5000
+}
+fastapi.localhost {
+    reverse_proxy fastapi:8000
+}

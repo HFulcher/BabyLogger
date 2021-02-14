@@ -1,8 +1,11 @@
+import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:supersecurepass@db/babylogger"
+load_dotenv()
+SQLALCHEMY_DATABASE_URL = f"postgresql://postgres:{os.environ['POSTGRES_PASS']}@db/babylogger"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL
